@@ -1,7 +1,7 @@
 #include <QCoreApplication>
 #include <qvector.h>
 #include <QDebug>
-
+#include <iostream>
 
 class Operation
 {
@@ -11,14 +11,179 @@ public:
     {
         val = values;
     }
+    Operation(){}
     int op(int x, int y);
 
+    int op_con(int x, int y)
+    {
+        return (x && y);
+    }
+    int op_dis(int x, int y)
+    {
+        return (x || y);
+    }
+    int op_not(int x)
+    {
+        if (x)
+            return 0;
+        else
+            return 1;
+    }
+    int op_ident(QVector<char> elem, int curr_state, char ch);
 };
+
+int Operation::op_ident(QVector<char> elem, int curr_state, char ch)
+{
+    int value = 1;
+    int pos = elem.indexOf(ch);
+    for (int j=0;j<elem.size()-pos-1;j++)
+        value*=2;
+
+    qDebug()<<value<<curr_state<<ch;
+    if (value & curr_state)
+        return 1;
+    else
+        return 0;
+}
 
 int Operation::op(int x, int y)
 {
     return val[x*2+y];
 }
+bool test(QVector<char> elem, int curr_state, const char* input, int &curr_pos)
+{
+    bool result;
+    //bool tmp_result;
+    char ch;
+    Operation op;
+
+
+    for(;curr_pos<strlen(input);)
+    {
+        ch = input[curr_pos];
+        qDebug()<<ch<<curr_pos;
+        curr_pos++;
+        //if(ch=='(')
+            //tmp_result = test(elem,curr_state,input,curr_pos);
+        if(ch==')')
+            return result;
+        if(elem.contains(ch))
+        {
+            qDebug()<<"test";
+            if(curr_pos>1)
+                if(input[curr_pos-1]!='(')
+                    return op.op_ident(elem,curr_state,ch);
+            result=op.op_ident(elem,curr_state,ch);
+            qDebug()<<"test2"<<result;
+        }
+
+        if(ch=='&')
+        {
+            result=op.op_con(result,test(elem,curr_state,input,curr_pos));
+            qDebug()<<"test3"<<result;
+        }
+        if(ch=='|')
+        {
+            result=op.op_dis(result,test(elem,curr_state,input,curr_pos));
+        }
+        if(ch=='!')
+        {
+            result=op.op_not(test(elem,curr_state,input,curr_pos));
+        }
+    }
+
+    return result;
+}
+
+QVector<int> parse(const char* input)
+{
+    //QVector<QVector<int>> result;
+    QVector<int> result;
+    QVector<char> elem;
+    //QVector<int> curr_state;
+    char ch;
+
+    for (int i=0;i<strlen(input);i++)
+    {
+        ch = input[i];
+
+        if (ch>='a' && ch<='z')
+            if (!elem.contains(ch))
+            {
+                elem.append(ch);
+                //curr_state.append(0);
+            }
+    }
+
+    int size = elem.size();
+
+    int test_variants = 1;
+    int curr_pos;
+
+    for (int i=0;i<size;i++,test_variants*=2);
+
+    for (int i=0, curr_state=0;i<test_variants;i++, curr_state++)
+    {
+        qDebug()<<size<<test_variants<<curr_state;
+        curr_pos = 0;
+        if(test(elem,curr_state,input,curr_pos))
+            result.append(curr_state);
+
+    }
+
+    return result;
+}
+
+class func_table
+{
+    QVector<int> truth_table;
+    QVector<int> check;
+public:
+    func_table(QVector<int> table,int elem_numb);
+    func_table(func_table &f_t);
+
+    bool test_func(int val)
+    {
+        return truth_table.contains(val);
+    }
+
+    func_table expansion(int pos, int value);
+
+};
+
+func_table::func_table(QVector<int> table,int elem_numb)
+{
+    truth_table = table;
+    for(int i; i<elem_numb;i++)
+        check.append(0);
+}
+
+func_table(func_table &f_t);
+{
+    //this = func_table(f_ttable,f_tcheck.size)
+}
+
+func_table func_table::expansion(int pos, int value)
+{
+    func_table tmp_func(*this);
+
+    int tmp=1;
+    for (int i=0;i<check.size()-pos;i++)
+        tmp*=2;
+    for(int i=0;i<tmp_func.truth_table.size();)
+    {
+        if(((tmp_func.truth_table[i] & tmp) && value) || (!(tmp_func.truth_table[i] & tmp) && !value))
+            tmp_func.truth_table.remove(i);
+        else
+            i++;
+    }
+
+    tmp_func.check[pos]=1;
+    return tmp_func;
+
+}
+
+
 
 class func
 {
@@ -239,24 +404,34 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    QVector<int> oper={0,1,1,1};
-    Operation dis(oper);
-    qDebug()<<dis.op(0,1);
+    int state = 2;
 
-    BDD H;
-    MakeNode(H,4,0,1);//2
-    MakeNode(H,3,2,1);
-    MakeNode(H,2,2,3);
-    MakeNode(H,1,4,3);//5
+    //QVector<QVector<int>> result;
+    qDebug()<<(bin)<<parse("a&b&c|d");
 
-    MakeNode(H,4,0,1);//6
-    MakeNode(H,3,1,6);//7
-    MakeNode(H,1,6,7);//8
+//    for(auto val:result)
+//    qDebug()<<val;
 
-    H.Show();
+    qDebug()<< (5 & 2);
 
-    qDebug()<<Apply(H,dis,5,8);
-    H.Show();
+//    QVector<int> oper={0,1,1,1};
+//    Operation dis(oper);
+//    qDebug()<<dis.op(0,1);
+
+//    BDD H;
+//    MakeNode(H,4,0,1);//2
+//    MakeNode(H,3,2,1);
+//    MakeNode(H,2,2,3);
+//    MakeNode(H,1,4,3);//5
+
+//    MakeNode(H,4,0,1);//6
+//    MakeNode(H,3,1,6);//7
+//    MakeNode(H,1,6,7);//8
+
+//    H.Show();
+
+//    qDebug()<<Apply(H,dis,5,8);
+//    H.Show();
 
 //    G = new int*[u1];
 
